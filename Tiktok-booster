@@ -1,0 +1,461 @@
+import requests
+import uuid
+import time
+import random
+import sys
+from urllib.parse import urlparse
+import os
+import concurrent.futures
+
+# Color Codes
+BRIGHT_RED = "\033[91;1m"
+BRIGHT_GREEN = "\033[92;1m"
+BRIGHT_YELLOW = "\033[93;1m"
+BRIGHT_BLUE = "\033[94;1m"
+BRIGHT_MAGENTA = "\033[95;1m"
+BRIGHT_CYAN = "\033[96;1m"
+BRIGHT_WHITE = "\033[97;1m"
+RESET = "\033[0m"
+
+# New ASCII Art for TikTok Booster
+ASCII_ART = f"""
+{BRIGHT_CYAN}╔═╗╦╔═╗╔╗╔╔═╗╦ ╦{BRIGHT_MAGENTA}  ╦ ╦╔═╗╔═╗╔═╗╔═╗╦═╗
+{BRIGHT_MAGENTA}╠═╝║║ ║║║║║╣ ╠═╣{BRIGHT_GREEN}  ╠═╣║╣ ╚═╗║╣ ║╣ ╠╦╝
+{BRIGHT_GREEN}╩  ╩╚═╝╝╚╝╚═╝╩ ╩{BRIGHT_YELLOW}  ╩ ╩╚═╝╚═╝╚═╝╚═╝╩╚═
+
+{BRIGHT_YELLOW}┌─┐┬ ┬┌┐┌┬  ┌─┐  ┌─┐┌─┐┌─┐┬ ┬┌┬┐┌─┐┌─┐
+{BRIGHT_BLUE}├─┤│ │││││  ├┤   │ │├┤ │  │ │ │ ├┤ └─┐
+{BRIGHT_RED}┴ ┴└─┘┘└┘┴─┘└─┘  └─┘└  └─┘└─┘ ┴ └─┘└─┘
+
+{BRIGHT_WHITE}╔══════════════════════════════════════════════╗
+{BRIGHT_GREEN}║     TIKTOK UNLIMITED BOOSTER V3.0           ║
+{BRIGHT_WHITE}╠══════════════════════════════════════════════╣
+{BRIGHT_CYAN}║        {BRIGHT_MAGENTA}MADE BY: TOOLIPOP {BRIGHT_CYAN}                     ║
+{BRIGHT_WHITE}╚══════════════════════════════════════════════╝
+"""
+
+def clear_screen():
+    os.system('cls' if os.name == 'nt' else 'clear')
+
+def print_header():
+    clear_screen()
+    
+    # Typewriter effect
+    lines = ASCII_ART.split('\n')
+    for line in lines:
+        for char in line:
+            print(char, end='', flush=True)
+            time.sleep(0.001)
+        print()
+    
+    print(f"\n{BRIGHT_CYAN}{'═' * 60}{RESET}")
+    print(f"{BRIGHT_GREEN}🚀 UNLIMITED TIKTOK BOOSTING SERVICE 🚀{RESET}")
+    print(f"{BRIGHT_CYAN}{'═' * 60}{RESET}\n")
+
+def print_progress_bar(iteration, total, prefix='', suffix='', length=40, fill='█'):
+    percent = ("{0:.1f}").format(100 * (iteration / float(total)))
+    filled_length = int(length * iteration // total)
+    bar = fill * filled_length + '-' * (length - filled_length)
+    
+    colors = [BRIGHT_GREEN, BRIGHT_YELLOW, BRIGHT_CYAN, BRIGHT_MAGENTA]
+    color = colors[iteration % len(colors)]
+    
+    sys.stdout.write(f'\r{prefix} {color}|{bar}| {percent}% {suffix}{RESET}')
+    sys.stdout.flush()
+
+class TikTokUnlimitedBooster:
+    def __init__(self):
+        self.base_url = "https://zefame-free.com/api_free.php"
+        self.proxy_url = "https://zefame-free.com/tiktok_proxy.php"
+        self.device_id = str(uuid.uuid4())
+        self.session = requests.Session()
+        
+        # Rotating User-Agents
+        self.user_agents = [
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
+            "Mozilla/5.0 (Linux; Android 14; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
+        ]
+        
+        # Multi-device IDs for bypass
+        self.device_ids = [str(uuid.uuid4()) for _ in range(10)]
+        self.current_device_index = 0
+        
+    def get_headers(self):
+        """Get random headers for each request"""
+        return {
+            "accept": "application/json, text/javascript, */*; q=0.01",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9",
+            "origin": "https://zefame.com",
+            "referer": "https://zefame.com/",
+            "sec-ch-ua": '"Not_A Brand";v="8", "Chromium";v="120"',
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": '"Windows"',
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "user-agent": random.choice(self.user_agents),
+            "x-request-id": str(uuid.uuid4())[:8],
+            "x-timestamp": str(int(time.time() * 1000))
+        }
+    
+    def get_next_device_id(self):
+        """Rotate device IDs to bypass limits"""
+        device_id = self.device_ids[self.current_device_index]
+        self.current_device_index = (self.current_device_index + 1) % len(self.device_ids)
+        return device_id
+    
+    def extract_video_id(self, tiktok_url):
+        """Extract video ID from TikTok URL"""
+        try:
+            parsed = urlparse(tiktok_url)
+            path_parts = parsed.path.split('/')
+            
+            for i, part in enumerate(path_parts):
+                if part == 'video' and i + 1 < len(path_parts):
+                    video_id = path_parts[i + 1].split('?')[0]
+                    return video_id
+            
+            return None
+        except:
+            return None
+    
+    # ========== BYPASS TECHNIQUES ==========
+    
+    def bypass_check_video_id(self, tiktok_url):
+        """Bypass method for video ID check with retry logic"""
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                headers = self.get_headers()
+                headers["content-type"] = "application/x-www-form-urlencoded; charset=UTF-8"
+                
+                data = { "action": "checkVideoId", "link": tiktok_url }
+                
+                response = self.session.post(self.base_url, headers=headers, data=data, timeout=10)
+                
+                if response.status_code == 200:
+                    result = response.json()
+                    
+                    if result.get('success') or result.get('status') == 'success':
+                        video_id = result.get('data', {}).get('videoId') or result.get('videoId')
+                        if video_id:
+                            return video_id
+                    else:
+                        # If failed, try with different parameters
+                        time.sleep(random.uniform(1, 2))
+                        continue
+                        
+            except Exception as e:
+                print(f"{BRIGHT_YELLOW}[Attempt {attempt + 1}] Retrying...{RESET}")
+                time.sleep(random.uniform(2, 4))
+        
+        return None
+    
+    def bypass_check_service(self, video_id, service_id):
+        """Bypass service availability check"""
+        for _ in range(2):  # Try twice with different device IDs
+            try:
+                device_id = self.get_next_device_id()
+                params = {
+                    "action": "check",
+                    "device": device_id,
+                    "service": service_id,
+                    "videoId": video_id,
+                    "_": str(int(time.time() * 1000))  # Cache busting
+                }
+                
+                headers = self.get_headers()
+                response = self.session.get(self.base_url, headers=headers, params=params, timeout=8)
+                
+                if response.status_code == 200:
+                    result = response.json()
+                    
+                    if result.get('success') or result.get('status') == 'success':
+                        allowed = result.get('data', {}).get('allowed') or result.get('available')
+                        if allowed:
+                            return True
+                            
+            except:
+                pass
+            
+            time.sleep(random.uniform(1, 2))
+        
+        return False
+    
+    def bypass_place_order(self, tiktok_url, video_id, service_id):
+        """Bypass order placement with multiple attempts"""
+        order_attempts = 2
+        
+        for attempt in range(order_attempts):
+            try:
+                device_id = self.get_next_device_id()
+                headers = self.get_headers()
+                headers["content-type"] = "application/x-www-form-urlencoded; charset=UTF-8"
+                
+                # Randomize data slightly
+                data = {
+                    "action": "order",
+                    "service": service_id,
+                    "link": tiktok_url,
+                    "uuid": device_id,
+                    "videoId": video_id,
+                    "timestamp": str(int(time.time() * 1000))
+                }
+                
+                # Add random parameter
+                if random.choice([True, False]):
+                    data["ref"] = str(uuid.uuid4())[:8]
+                
+                url = f"{self.base_url}?action=order&_={int(time.time() * 1000)}"
+                
+                response = self.session.post(url, headers=headers, data=data, timeout=10)
+                
+                if response.status_code == 200:
+                    result = response.json()
+                    
+                    if result.get('success'):
+                        order_id = result.get('data', {}).get('orderId', 'N/A')
+                        return {
+                            'success': True,
+                            'order_id': order_id,
+                            'message': 'Order placed successfully!'
+                        }
+                    else:
+                        # If rate limited, wait and retry
+                        if "wait" in str(result.get('message', '')).lower():
+                            wait_time = random.uniform(30, 60)
+                            print(f"{BRIGHT_YELLOW}[Rate Limit] Waiting {wait_time:.1f}s before retry...{RESET}")
+                            time.sleep(wait_time)
+                            continue
+                            
+            except Exception as e:
+                print(f"{BRIGHT_YELLOW}[Order Attempt {attempt + 1}] Error: {str(e)[:50]}{RESET}")
+            
+            # Random delay between attempts
+            time.sleep(random.uniform(5, 10))
+        
+        return {'success': False, 'message': 'Failed after multiple attempts'}
+    
+    # ========== UNLIMITED BOOSTING FUNCTIONS ==========
+    
+    def unlimited_boost_views(self, tiktok_url, boost_count=999):
+        """Unlimited views boosting with loop"""
+        print(f"\n{BRIGHT_CYAN}{'★' * 60}")
+        print(f"{BRIGHT_GREEN}🚀 UNLIMITED TIKTOK VIEWS BOOSTER 🚀")
+        print(f"{BRIGHT_CYAN}{'★' * 60}{RESET}")
+        
+        video_id = self.bypass_check_video_id(tiktok_url)
+        if not video_id:
+            print(f"\n{BRIGHT_RED}✗ Could not extract video ID{RESET}")
+            return False
+        
+        print(f"{BRIGHT_GREEN}✓ Video ID: {video_id}{RESET}")
+        print(f"{BRIGHT_CYAN}🔄 Starting unlimited views boost...{RESET}")
+        print(f"{BRIGHT_YELLOW}Target: {boost_count} views{RESET}\n")
+        
+        successful_boosts = 0
+        failed_boosts = 0
+        
+        for boost_num in range(1, boost_count + 1):
+            print(f"\n{BRIGHT_WHITE}[Boost #{boost_num}] {BRIGHT_CYAN}Processing...{RESET}")
+            
+            # Show progress
+            for i in range(20):
+                print_progress_bar(i, 20, prefix=f'{BRIGHT_BLUE}Checking:', suffix=f'Step 1/3')
+                time.sleep(0.03)
+            
+            # Check service
+            if not self.bypass_check_service(video_id, 229):  # Service 229 for views
+                print(f"{BRIGHT_YELLOW}⚠ Service temporarily unavailable, waiting...{RESET}")
+                time.sleep(random.uniform(10, 20))
+                failed_boosts += 1
+                continue
+            
+            for i in range(20):
+                print_progress_bar(i, 20, prefix=f'{BRIGHT_MAGENTA}Ordering:', suffix=f'Step 2/3')
+                time.sleep(0.03)
+            
+            # Place order
+            result = self.bypass_place_order(tiktok_url, video_id, 229)
+            
+            for i in range(20):
+                print_progress_bar(i, 20, prefix=f'{BRIGHT_GREEN}Finalizing:', suffix=f'Step 3/3')
+                time.sleep(0.03)
+            
+            if result['success']:
+                successful_boosts += 1
+                print(f"\n{BRIGHT_GREEN}✅ Boost #{boost_num} SUCCESS!{RESET}")
+                print(f"{BRIGHT_CYAN}   Order ID: {result['order_id']}{RESET}")
+            else:
+                failed_boosts += 1
+                print(f"\n{BRIGHT_YELLOW}⚠ Boost #{boost_num} skipped: {result['message']}{RESET}")
+            
+            # Calculate success rate
+            total_attempts = successful_boosts + failed_boosts
+            success_rate = (successful_boosts / total_attempts * 100) if total_attempts > 0 else 0
+            
+            print(f"\n{BRIGHT_CYAN}📊 Progress: {boost_num}/{boost_count}")
+            print(f"{BRIGHT_GREEN}✓ Successful: {successful_boosts}")
+            print(f"{BRIGHT_RED}✗ Failed: {failed_boosts}")
+            print(f"{BRIGHT_YELLOW}📈 Success Rate: {success_rate:.1f}%{RESET}")
+            
+            # Random delay between boosts (shorter for unlimited mode)
+            if boost_num < boost_count:
+                delay = random.uniform(5, 15)  # Reduced delay
+                print(f"\n{BRIGHT_YELLOW}⏳ Next boost in {delay:.1f}s...{RESET}")
+                time.sleep(delay)
+        
+        print(f"\n{BRIGHT_CYAN}{'★' * 60}")
+        print(f"{BRIGHT_GREEN}🎉 UNLIMITED VIEWS BOOST COMPLETED!{RESET}")
+        print(f"{BRIGHT_CYAN}{'★' * 60}{RESET}")
+        return True
+    
+    def unlimited_boost_likes(self, tiktok_url, boost_count=999):
+        """Unlimited likes boosting with loop"""
+        print(f"\n{BRIGHT_CYAN}{'★' * 60}")
+        print(f"{BRIGHT_GREEN}❤️ UNLIMITED TIKTOK LIKES BOOSTER ❤️")
+        print(f"{BRIGHT_CYAN}{'★' * 60}{RESET}")
+        
+        video_id = self.bypass_check_video_id(tiktok_url)
+        if not video_id:
+            print(f"\n{BRIGHT_RED}✗ Could not extract video ID{RESET}")
+            return False
+        
+        print(f"{BRIGHT_GREEN}✓ Video ID: {video_id}{RESET}")
+        print(f"{BRIGHT_CYAN}🔄 Starting unlimited likes boost...{RESET}")
+        print(f"{BRIGHT_YELLOW}Target: {boost_count} likes{RESET}\n")
+        
+        successful_boosts = 0
+        failed_boosts = 0
+        
+        for boost_num in range(1, boost_count + 1):
+            print(f"\n{BRIGHT_WHITE}[Boost #{boost_num}] {BRIGHT_CYAN}Processing...{RESET}")
+            
+            for i in range(20):
+                print_progress_bar(i, 20, prefix=f'{BRIGHT_RED}Checking:', suffix=f'Step 1/3')
+                time.sleep(0.03)
+            
+            # Check service (232 for likes)
+            if not self.bypass_check_service(video_id, 232):
+                print(f"{BRIGHT_YELLOW}⚠ Service temporarily unavailable, waiting...{RESET}")
+                time.sleep(random.uniform(10, 20))
+                failed_boosts += 1
+                continue
+            
+            for i in range(20):
+                print_progress_bar(i, 20, prefix=f'{BRIGHT_MAGENTA}Ordering:', suffix=f'Step 2/3')
+                time.sleep(0.03)
+            
+            # Place order
+            result = self.bypass_place_order(tiktok_url, video_id, 232)
+            
+            for i in range(20):
+                print_progress_bar(i, 20, prefix=f'{BRIGHT_GREEN}Finalizing:', suffix=f'Step 3/3')
+                time.sleep(0.03)
+            
+            if result['success']:
+                successful_boosts += 1
+                print(f"\n{BRIGHT_GREEN}✅ Boost #{boost_num} SUCCESS!{RESET}")
+                print(f"{BRIGHT_CYAN}   Order ID: {result['order_id']}{RESET}")
+            else:
+                failed_boosts += 1
+                print(f"\n{BRIGHT_YELLOW}⚠ Boost #{boost_num} skipped: {result['message']}{RESET}")
+            
+            # Calculate success rate
+            total_attempts = successful_boosts + failed_boosts
+            success_rate = (successful_boosts / total_attempts * 100) if total_attempts > 0 else 0
+            
+            print(f"\n{BRIGHT_CYAN}📊 Progress: {boost_num}/{boost_count}")
+            print(f"{BRIGHT_GREEN}✓ Successful: {successful_boosts}")
+            print(f"{BRIGHT_RED}✗ Failed: {failed_boosts}")
+            print(f"{BRIGHT_YELLOW}📈 Success Rate: {success_rate:.1f}%{RESET}")
+            
+            # Random delay between boosts
+            if boost_num < boost_count:
+                delay = random.uniform(5, 15)
+                print(f"\n{BRIGHT_YELLOW}⏳ Next boost in {delay:.1f}s...{RESET}")
+                time.sleep(delay)
+        
+        print(f"\n{BRIGHT_CYAN}{'★' * 60}")
+        print(f"{BRIGHT_GREEN}🎉 UNLIMITED LIKES BOOST COMPLETED!{RESET}")
+        print(f"{BRIGHT_CYAN}{'★' * 60}{RESET}")
+        return True
+    
+    def dual_boost_views_likes(self, tiktok_url, boost_count=999):
+        """Boost both views and likes simultaneously"""
+        print(f"\n{BRIGHT_CYAN}{'★' * 60}")
+        print(f"{BRIGHT_GREEN}🔥 DUAL BOOST: VIEWS + LIKES 🔥")
+        print(f"{BRIGHT_CYAN}{'★' * 60}{RESET}")
+        
+        video_id = self.bypass_check_video_id(tiktok_url)
+        if not video_id:
+            print(f"\n{BRIGHT_RED}✗ Could not extract video ID{RESET}")
+            return False
+        
+        print(f"{BRIGHT_GREEN}✓ Video ID: {video_id}{RESET}")
+        print(f"{BRIGHT_CYAN}🔄 Starting dual boost (Views + Likes)...{RESET}")
+        print(f"{BRIGHT_YELLOW}Target: {boost_count} each{RESET}\n")
+        
+        successful_views = 0
+        successful_likes = 0
+        failed_boosts = 0
+        
+        for boost_num in range(1, boost_count + 1):
+            print(f"\n{BRIGHT_WHITE}[Dual Boost #{boost_num}] {BRIGHT_CYAN}Processing...{RESET}")
+            
+            # === BOOST VIEWS ===
+            print(f"{BRIGHT_BLUE}[Views Boost]{RESET}")
+            for i in range(15):
+                print_progress_bar(i, 15, prefix='', suffix='')
+                time.sleep(0.02)
+            
+            views_result = None
+            if self.bypass_check_service(video_id, 229):
+                views_result = self.bypass_place_order(tiktok_url, video_id, 229)
+                if views_result['success']:
+                    successful_views += 1
+                    print(f"{BRIGHT_GREEN}✓ Views Boost #{boost_num}: SUCCESS{RESET}")
+                else:
+                    failed_boosts += 1
+                    print(f"{BRIGHT_YELLOW}⚠ Views Boost #{boost_num}: {views_result['message']}{RESET}")
+            
+            time.sleep(random.uniform(2, 4))
+            
+            # === BOOST LIKES ===
+            print(f"{BRIGHT_RED}[Likes Boost]{RESET}")
+            for i in range(15):
+                print_progress_bar(i, 15, prefix='', suffix='')
+                time.sleep(0.02)
+            
+            likes_result = None
+            if self.bypass_check_service(video_id, 232):
+                likes_result = self.bypass_place_order(tiktok_url, video_id, 232)
+                if likes_result['success']:
+                    successful_likes += 1
+                    print(f"{BRIGHT_GREEN}✓ Likes Boost #{boost_num}: SUCCESS{RESET}")
+                else:
+                    failed_boosts += 1
+                    print(f"{BRIGHT_YELLOW}⚠ Likes Boost #{boost_num}: {likes_result['message']}{RESET}")
+            
+            # Display stats
+            total_successful = successful_views + successful_likes
+            total_attempts = (boost_num * 2)
+            success_rate = (total_successful / total_attempts * 100) if total_attempts > 0 else 0
+            
+            print(f"\n{BRIGHT_CYAN}📊 Dual Boost Progress: {boost_num}/{boost_count}")
+            print(f"{BRIGHT_BLUE}✓ Views Successful: {successful_views}")
+            print(f"{BRIGHT_RED}✓ Likes Successful: {successful_likes}")
+            print(f"{BRIGHT_YELLOW}✗ Total Failed: {failed_boosts}")
+            print(f"{BRIGHT_GREEN}📈 Overall Success Rate: {success_rate:.1f}%{RESET}")
+            
+            # Delay between dual boosts
+            if boost_num < boost_count:
+                delay = random.uniform(8, 15)
+                print(f"\n{BRIGHT_YELLOW}⏳ Next dual boost in {delay:.1f}s...{RESET}")
+                time.sleep(delay)
+        
+        print(f"\n{BRIGHT_CYAN}{'★' *
